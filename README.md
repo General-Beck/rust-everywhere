@@ -5,26 +5,34 @@
 
 > Use CI services to generate binary releases of your Rust program for Linux, Mac and Windows
 
-This repository has configured [Travis CI] and [AppVeyor] to generate **[binary releases]** of a
-Cargo project (in this example, a variation of hello world) for all the [tier 1] platforms and some
-lower tier platforms whenever a new git tag is pushed.
+This repository has configured [Travis CI] and [AppVeyor] to generate **[binary releases]**, in both
+tarball/zipfile and deb (\*) format, of a Cargo project (in this example, a variation of hello
+world) for all the [tier 1] platforms and some lower tier platforms whenever a new git tag is
+pushed.
 
 [Travis CI]: https://travis-ci.org/
 [AppVeyor]: https://www.appveyor.com/
 [binary releases]: https://github.com/japaric/rust-everywhere/releases
 [tier 1]: https://doc.rust-lang.org/book/getting-started.html#tier-1
 
+(\*) .deb support is minimal right now: you can only package binaries and not, for example, store
+information about dependencies. If you need more features in this area open an issue to let me know!
+
 ## Supported targets
 
 The current CI configuration builds, tests and generates binary releases for the following targets:
 
-- `arm-unknown-linux-gnueabihf`. **WARNING** Experimental target. Tests are executed using qemu user
-    emulation, but this approach may have problems when too many threads are spawned. Also, by the
-    next Rust stable release, this target will be replaced by `armv7-unknown-linux-gnueabihf`.
+- `aarch64-unknown-linux-gnu`. (Linux on 64-bit ARM) **WARNING** Experimental target. Tests are
+executed using qemu user emulation, but this approach has problems when too many threads are
+spawned.
+- `armv7-unknown-linux-gnueabihf` (Linux on 32-bit ARM). **WARNING** Experimental target. Tests are
+executed using qemu user emulation, but this approach has problems when too many threads are
+ spawned.
 - `i686-apple-darwin` (32-bit OSX)
 - `i686-pc-windows-gnu` (32-bit Windows, MinGW)
 - `i686-pc-windows-msvc` (32-bit Windows, MSVC)
 - `i686-unknown-linux-gnu` (32-bit Linux)
+- `i686-unknown-linux-musl`. (32-bit Linux, statically linked binaries)
 - `x86_64-apple-darwin` (64-bit OSX)
 - `x86_64-pc-windows-gnu` (64-bit Windows, MinGW)
 - `x86_64-pc-windows-msvc` (64-bit Windows, MSVC)
@@ -33,7 +41,7 @@ The current CI configuration builds, tests and generates binary releases for the
 
 ## How to use
 
-You can use this CI configuration as a starting point for your project by copying the `.travis.yml`
+You can use this CI configuration, as a starting point, in your project by copying the `.travis.yml`
 and `appveyor.yml` files and the `ci` directory in your project repository. And then customizing
 the configuration for your needs by implementing all the `TODO`s contained in those files.
 
@@ -43,17 +51,62 @@ All these aspects can be configured:
 - Deploy on one of these channels: stable, beta and nightly.
 - The contents of the release tarball/zipfile
 - CI phases like `install` and `script`
+- Metadata of the .deb packages.
 
 Once configured, simply push a new git tag to build a new binary release:
 
 ``` sh
-git tag v1.2.3
-git push --tags
+$ git tag v1.2.3
+$ git push --tags
 ```
 
 You should see the release tarballs/zipfiles under your project's ['releases'] page.
 
 ['releases']: https://github.com/japaric/rust-everywhere/releases
+
+## How do I install/uninstall these binary releases?
+
+Examples:
+
+### Tarball/zipfiles
+
+```
+# Install
+$ curl -OL https://github.com/japaric/rust-everywhere/releases/download/v0.1.41/rust-everywhere-v0.1.41-x86_64-unknown-linux-gnu.tar.gz
+$ tar xzf rust-everywhere-v0.1.41-x86_64-unknown-linux-gnu.tar.gz
+$ sudo cp hello /usr/local/bin/
+
+# Test the program
+$ hello
+0.1.41: x86_64-unknown-linux-gnu says hello!
+Compiled with rust-1.8.0 (Stable channel)
+
+# Uninstall
+$ sudo rm /usr/local/bin/hello
+```
+
+### .deb packages
+
+```
+# Install
+$ curl -OL https://github.com/japaric/rust-everywhere/releases/download/v0.1.41/rust-everywhere-v0.1.41-x86_64-unknown-linux-gnu.deb
+$ dpkg -i rust-everywhere-v0.1.41-x86_64-unknown-linux-gnu.deb
+Selecting previously unselected package rust-everywhere.
+(Reading database ... 12398 files and directories currently installed.)
+Preparing to unpack rust-everywhere-v0.1.41-x86_64-unknown-linux-gnu.deb ...
+Unpacking rust-everywhere (0.1.41) ...
+Setting up rust-everywhere (0.1.41) ...
+
+# Test the program
+$ hello
+0.1.41: x86_64-unknown-linux-gnu says hello!
+Compiled with rust-1.8.0 (Stable channel)
+
+# Uninstall
+# dpkg -r rust-everywhere
+(Reading database ... 12399 files and directories currently installed.)
+Removing rust-everywhere (0.1.41) ...
+```
 
 ## Using a binary release with Travis CI
 
@@ -66,8 +119,8 @@ install:
   - curl -sf "https://raw.githubusercontent.com/japaric/rust-everywhere/master/install.sh" | bash -s -- --from azerupi/mdBook --tag 0.0.11-rc1
 ```
 
-Check the script for more information about its usage, and it's not very robust on errors so use it
-with care ;-).
+Check the script for more information about its usage. The script is not very good at handling
+errors so use it with care ;-).
 
 ## Known issues
 
